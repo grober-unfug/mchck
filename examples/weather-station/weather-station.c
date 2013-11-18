@@ -204,7 +204,7 @@ static const struct usbd_device cdc_device =
 	USB_INIT_DEVICE(0x2323,              /* vid */
 			3,                   /* pid */
 			u"mchck.org",        /* vendor */
-			u"temperature test", /* product" */
+			u"weather station",  /* product" */
 			(init_vcdc,          /* init */
 			 CDC)                /* functions */
 	);
