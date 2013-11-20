@@ -78,7 +78,7 @@ struct nrf_datapipe_payload_size_t {
 
 struct nrf_reg_generic {
 	enum NRF_REG_ADDR addr;
-	uint8_t raw;
+	uint8_t *raw;
 };
 
 struct nrf_reg_config_t {
@@ -159,7 +159,7 @@ struct nrf_transaction_t {
 	void *tx_data;
 	uint8_t rx_len;
 	struct nrf_status_t status;
-	void *rx_data;
+	uint8_t *rx_data;
 };
 
 /*

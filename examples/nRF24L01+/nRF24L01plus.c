@@ -33,22 +33,43 @@ static void
 nrf_read_buffer_done(void *cbdata)
 {
 	struct nrf_reg_generic *reg = cbdata;
-	printf("reg %x: %x\r\n", reg->addr, reg->raw);
+	printf("reg %x: %x\r\n", reg->addr, *reg->raw);
+
 }
 
 void
 nrf_read_buffer(enum NRF_REG_ADDR reg_addr)
 {
+	static uint8_t cmd;
 	static struct spi_ctx rdbf_ctx;
-	static enum NRF_CMD cmd = NRF_CMD_R_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
 	static uint8_t rxbuf[2];
 	static struct nrf_reg_generic reg;
+	cmd = NRF_CMD_R_REGISTER | (NRF_REG_MASK & reg_addr);
 	reg.addr = reg_addr;
-	reg.raw = rxbuf[1];
+	reg.raw = &rxbuf[1];
 
 	spi_queue_xfer(&rdbf_ctx, NRF_SPI_CS,
-		       &cmd, 1, rxbuf, 2,
+		       &cmd, 1, rxbuf, 4,
 		       nrf_read_buffer_done, &reg);
+
+/*
+	static uint8_t *cmd;
+	*cmd = NRF_CMD_R_REGISTER | (NRF_REG_MASK & reg_addr);
+	static uint8_t *val;
+	static struct spi_ctx_bare sp_ctx;
+	static struct sg tx_sg[2];
+	static struct sg rx_sg[2];
+	sg_init(tx_sg,
+		(void *)cmd, 1,
+		NULL, 0);
+	sg_init(rx_sg,
+		NULL, 1,
+		(void *)val, 1);
+
+	spi_queue_xfer_sg(&sp_ctx, NRF_SPI_CS,
+			tx_sg, rx_sg,
+			&nrf_read_buffer_done, NULL);
+*/
 }
 
 /*
