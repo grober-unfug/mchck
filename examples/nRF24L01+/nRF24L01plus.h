@@ -76,6 +76,11 @@ struct nrf_datapipe_payload_size_t {
 
 /* Mnemonic Register Description */
 
+struct nrf_reg_generic {
+//	enum NRF_REG_ADDR addr;
+	uint8_t raw;
+};
+
 struct nrf_reg_config_t {
 	UNION_STRUCT_START(8);
 	enum nrf_rxtx_control {
@@ -140,7 +145,9 @@ CTASSERT_SIZE_BIT(struct nrf_rf_ch_t, 8);
 
 
 
-
+struct nrf_ctx {
+	uint8_t channel;
+};
 
 
 struct nrf_transaction_t {
@@ -176,12 +183,13 @@ struct nrf_addr_t {
 };
 */
 
-void nrf_init(void);
+void nrf_init(struct nrf_ctx *);
 void nrf_read_status(void);
+void nrf_read_buffer(enum NRF_REG_ADDR);
 
 //void nrf_receive(struct nrf_addr_t *, void *, uint8_t, nrf_data_callback);
 //void nrf_send(struct nrf_addr_t *, void *, uint8_t, nrf_data_callback);
-//void nrf_set_channel(uint8_t);
+void nrf_set_channel(void *cbdata);
 //void nrf_set_rate_and_power(enum nrf_data_rate_t, enum nrf_tx_output_power_t);
 
 

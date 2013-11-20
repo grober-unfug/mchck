@@ -4,9 +4,10 @@
 #include "nRF24L01plus.h"
 
 #define RX_SIZE 32
-#define CHANNEL 5
+#define CHANNEL 3
 
 static struct cdc_ctx cdc;
+static struct nrf_ctx nrf;
 //static struct timeout_ctx t;
 
 /*
@@ -43,12 +44,14 @@ ping(void *data)
 
 
 
+
+
 /* Communication over USB */
 
 static void
 new_data(uint8_t *data, size_t len)
 {
-	nrf_read_status();
+	nrf_read_buffer(NRF_REG_ADDR_RF_CH);
         cdc_read_more(&cdc);
 }
 
@@ -73,9 +76,10 @@ static const struct usbd_device cdc_device =
 int
 main(void)
 {
+	nrf.channel = CHANNEL;
 	timeout_init();
 	usb_init(&cdc_device);
-	nrf_init();
+	nrf_init(&nrf);
 //	nrf_set_channel(CHANNEL);
 //	nrf_set_rate_and_power(NRF_DATA_RATE_1MBPS, NRF_TX_POWER_0DBM);
 //	ping(NULL);

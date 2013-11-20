@@ -2,7 +2,8 @@
 #include "nRF24L01plus.h"
 
 static struct nrf_status_t nrf_status;
-//static struct timeout_ctx t;
+static struct nrf_reg_generic nrf_reg;
+static struct timeout_ctx t;
 
 static void
 nrf_read_status_done(void *cbdata)
@@ -27,6 +28,30 @@ nrf_read_status(void)
 	spi_queue_xfer(&rdsr_ctx, NRF_SPI_CS,
 		       &cmd, 1, rxbuf, 2,
 		       nrf_read_status_done, &rxbuf[1]);
+}
+
+static void
+nrf_read_buffer_done(void *cbdata)
+{
+	struct nrf_reg_generic *reg = cbdata;
+
+	nrf_reg = *reg;
+	printf("reg: %x\r\n", nrf_reg.raw);
+}
+
+void
+nrf_read_buffer(enum NRF_REG_ADDR reg_addr)
+{
+	static struct spi_ctx rdbf_ctx;
+	static enum NRF_CMD cmd = NRF_CMD_R_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
+	static uint8_t rxbuf[2];
+//	static struct nrf_reg_gerneric nrf_reg;
+//	nrf_reg.addr = reg_addr;
+//	nrf.reg.raw = rxbuf[1];
+
+	spi_queue_xfer(&rdbf_ctx, NRF_SPI_CS,
+		       &cmd, 1, rxbuf, 2,
+		       nrf_read_buffer_done, &rxbuf[1]);
 }
 
 /*
@@ -145,21 +170,28 @@ void
 nrf_send(struct nrf_addr_t *addr, void *data, uint8_t len, nrf_data_callback cb)
 {
 }
+*/
 
 void
-nrf_set_channel(uint8_t channel)
+nrf_set_channel(void *cbdata)
 {
-	static struct nrf_rf_ch_t rf_ch = {
-		.pad = 0
-	};
-	nrf_ctx.trans.cmd = NRF_CMD_W_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
-	nrf_ctx.trans.tx_len = 1;
-	nrf_ctx.trans.tx_data = &rf_ch;
-	nrf_ctx.trans.rx_len = 0;
-	rf_ch.RF_CH = channel;
-	send_command(&nrf_ctx.trans, NULL);
+//	struct nrf_ctx *nrf = cbdata;
+
+	static struct spi_ctx wrcr_ctx;
+	static uint8_t txbuf[2];
+//	static struct nrf_rf_ch_t rf_ch = {
+//		.pad = 0
+//	};
+//	rf_ch.RF_CH = channel;
+	txbuf[0] = NRF_CMD_W_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
+	txbuf[1] = 3;
+
+	spi_queue_xfer(&wrcr_ctx, NRF_SPI_CS,
+		       txbuf, 2, NULL, 0,
+		       NULL, NULL);
 }
 
+/*
 void
 nrf_set_rate_and_power(enum nrf_data_rate_t data_rate, enum nrf_tx_output_power_t output_power)
 {
@@ -179,7 +211,7 @@ nrf_set_rate_and_power(enum nrf_data_rate_t data_rate, enum nrf_tx_output_power_
 */
 
 void
-nrf_init(void)
+nrf_init(struct nrf_ctx *nrf)
 {
 	spi_init();
 
@@ -195,5 +227,7 @@ nrf_init(void)
 //	pin_mode(NRF_IRQ, PIN_MODE_PULLDOWN);
 //	pin_physport_from_pin(NRF_IRQ)->pcr[pin_physpin_from_pin(NRF_IRQ)].irqc = PCR_IRQC_INT_RISING;
 //	int_enable(IRQ_PORTC);
+
+	timeout_add(&t, 100, nrf_set_channel, &nrf);
 }
 
