@@ -43,7 +43,7 @@ nrf_read_status(void)
 }
 
 static void
-nrf_read_buffer_done(void *cbdata)
+nrf_read_register_done(void *cbdata)
 {
 	static struct nrf_transaction_t *trans;
 	trans = cbdata;
@@ -51,7 +51,7 @@ nrf_read_buffer_done(void *cbdata)
 }
 
 void
-nrf_read_buffer(enum NRF_REG_ADDR reg_addr)
+nrf_read_register(enum NRF_REG_ADDR reg_addr)
 {
 	static struct nrf_transaction_t trans;
 	static uint8_t rx_data;

@@ -185,7 +185,7 @@ struct nrf_addr_t {
 
 void nrf_init(struct nrf_ctx *);
 void nrf_read_status(void);
-void nrf_read_buffer(enum NRF_REG_ADDR);
+void nrf_read_register(enum NRF_REG_ADDR);
 
 //void nrf_receive(struct nrf_addr_t *, void *, uint8_t, nrf_data_callback);
 //void nrf_send(struct nrf_addr_t *, void *, uint8_t, nrf_data_callback);
