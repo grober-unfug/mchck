@@ -151,7 +151,7 @@ struct nrf_ctx {
 
 
 struct nrf_transaction_t {
-	struct spi_ctx_bare spi_ctx;
+	struct spi_ctx_bare sp_ctx;
 	struct sg tx_sg[2];
 	struct sg rx_sg[2];
 	enum NRF_CMD cmd;
@@ -159,7 +159,7 @@ struct nrf_transaction_t {
 	void *tx_data;
 	uint8_t rx_len;
 	struct nrf_status_t status;
-	uint8_t *rx_data;
+	void *rx_data;
 };
 
 /*

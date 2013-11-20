@@ -5,6 +5,19 @@ static struct nrf_status_t nrf_status;
 static struct timeout_ctx t;
 
 static void
+send_command(struct nrf_transaction_t *trans, spi_cb *cb)
+{
+	sg_init(trans->tx_sg,
+		(void *)&trans->cmd, 1, trans->tx_data, trans->tx_len);
+	sg_init(trans->rx_sg,
+		(void *)&trans->status, 1, (void *)trans->rx_data, trans->rx_len);
+
+	spi_queue_xfer_sg(&trans->sp_ctx, NRF_SPI_CS,
+			trans->tx_sg, trans->rx_sg,
+			&nrf_read_buffer_done, trans);
+}
+
+static void
 nrf_read_status_done(void *cbdata)
 {
 	struct nrf_status_t *status = cbdata;
@@ -32,56 +45,27 @@ nrf_read_status(void)
 static void
 nrf_read_buffer_done(void *cbdata)
 {
-	struct nrf_reg_generic *reg = cbdata;
-	printf("reg %x: %x\r\n", reg->addr, *reg->raw);
-
+	static struct nrf_transaction_t *trans;
+	trans = cbdata;
+	printf("reg: %x\r\n", *(uint8_t *)trans->rx_data);
 }
 
 void
 nrf_read_buffer(enum NRF_REG_ADDR reg_addr)
 {
-	static uint8_t cmd;
-	static struct spi_ctx rdbf_ctx;
-	static uint8_t rxbuf[2];
-	static struct nrf_reg_generic reg;
-	cmd = NRF_CMD_R_REGISTER | (NRF_REG_MASK & reg_addr);
-	reg.addr = reg_addr;
-	reg.raw = &rxbuf[1];
+	static struct nrf_transaction_t trans;
+	static uint8_t rx_data;
 
-	spi_queue_xfer(&rdbf_ctx, NRF_SPI_CS,
-		       &cmd, 1, rxbuf, 4,
-		       nrf_read_buffer_done, &reg);
+	trans.cmd = NRF_CMD_R_REGISTER | (NRF_REG_MASK & reg_addr);
+	trans.tx_data = NULL;
+	trans.tx_len = 0;
+	trans.rx_len = 1;
+	trans.rx_data = (void *) &rx_data;
 
-/*
-	static uint8_t *cmd;
-	*cmd = NRF_CMD_R_REGISTER | (NRF_REG_MASK & reg_addr);
-	static uint8_t *val;
-	static struct spi_ctx_bare sp_ctx;
-	static struct sg tx_sg[2];
-	static struct sg rx_sg[2];
-	sg_init(tx_sg,
-		(void *)cmd, 1,
-		NULL, 0);
-	sg_init(rx_sg,
-		NULL, 1,
-		(void *)val, 1);
-
-	spi_queue_xfer_sg(&sp_ctx, NRF_SPI_CS,
-			tx_sg, rx_sg,
-			&nrf_read_buffer_done, NULL);
-*/
+	send_command(&trans, &nrf_read_buffer_done);
 }
 
 /*
-static void
-send_command(struct nrf_transaction_t *trans, spi_cb *cb)
-{
-	spi_queue_xfer_sg(&trans->spi_ctx, NRF_SPI_CS,
-			sg_init(trans->tx_sg, &trans->cmd, 1, trans->tx_data, trans->tx_len),
-			sg_init(trans->rx_sg, &trans->status, 1, trans->rx_data, trans->rx_len),
-			cb, trans);
-}
-
 
 static void
 nrf_set_power_rxtx(uint8_t up, uint8_t rx)
