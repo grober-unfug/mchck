@@ -1,10 +1,15 @@
 #include <mchck.h>
+#include <usb/usb.h>
+#include <usb/cdc-acm.h>
 #include "nRF24L01plus.h"
 
 #define RX_SIZE 32
 #define CHANNEL 5
 
+static struct cdc_ctx cdc;
 static struct timeout_ctx t;
+
+/*
 static uint8_t rx_buffer[RX_SIZE];
 static uint8_t tx_buffer = 0;
 
@@ -34,14 +39,45 @@ ping(void *data)
 	nrf_send(&test_addr, &tx_buffer, 1, data_sent);
 	timeout_add(&t, 200, ping, NULL);
 }
+*/
+
+
+
+/* Communication over USB */
+
+static void
+new_data(uint8_t *data, size_t len)
+{
+	timeout_add(&t, 5, nrf_set_channel, CHANNEL);
+        cdc_read_more(&cdc);
+}
+
+static void
+init_vcdc(int config)
+{
+        cdc_init(new_data, NULL, &cdc);
+        cdc_set_stdout(&cdc);
+}
+
+static const struct usbd_device cdc_device =
+        USB_INIT_DEVICE(0x2323,              /* vid */
+                        3,                   /* pid */
+                        u"mchck.org",        /* vendor */
+                        u"nRF24L01plus test",/* product" */
+                        (init_vcdc,          /* init */
+                         CDC)                /* functions */
+        );
+
+
 
 int
 main(void)
 {
-	nrf_init();
-	nrf_set_channel(CHANNEL);
-	nrf_set_rate_and_power(NRF_DATA_RATE_1MBPS, NRF_TX_POWER_0DBM);
 	timeout_init();
-	ping(NULL);
+	usb_init(&cdc_device);
+	nrf_init();
+//	nrf_set_channel(CHANNEL);
+//	nrf_set_rate_and_power(NRF_DATA_RATE_1MBPS, NRF_TX_POWER_0DBM);
+//	ping(NULL);
 	sys_yield_for_frogs();
 }
