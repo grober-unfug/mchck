@@ -7,7 +7,7 @@
 #define CHANNEL 5
 
 static struct cdc_ctx cdc;
-static struct timeout_ctx t;
+//static struct timeout_ctx t;
 
 /*
 static uint8_t rx_buffer[RX_SIZE];
@@ -48,7 +48,7 @@ ping(void *data)
 static void
 new_data(uint8_t *data, size_t len)
 {
-	timeout_add(&t, 5, nrf_set_channel, CHANNEL);
+	nrf_read_status();
         cdc_read_more(&cdc);
 }
 

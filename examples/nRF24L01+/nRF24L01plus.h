@@ -57,7 +57,7 @@ enum {
 
 /* SPI chip select */
 enum {
-	NRF_SPI_CS = SPI_PCS0
+	NRF_SPI_CS = SPI_PCS2
 };
 
 /* NRF TX/RX mode */
@@ -77,54 +77,66 @@ struct nrf_datapipe_payload_size_t {
 /* Mnemonic Register Description */
 
 struct nrf_reg_config_t {
-	uint8_t pad: 1; // 0
-	uint8_t MASK_RX_DR : 1;
-	uint8_t MASK_TX_DS : 1;
-	uint8_t MASK_MAX_RT : 1;
-	uint8_t EN_CRC : 1;  // reset value 1
-	enum nrf_crc_encoding_scheme {
-		NRF_CRC_ENC_1_BYTE = 0,
-		NRF_CRC_ENC_2_BYTES = 1
-	} CRCO : 1;
-	uint8_t PWR_UP : 1;
+	UNION_STRUCT_START(8);
 	enum nrf_rxtx_control {
 		NRF_RX_MODE = 0, // reset value
 		NRF_TX_MODE = 1
 	} PRIM_RX : 1;
+	uint8_t PWR_UP : 1;
+	enum nrf_crc_encoding_scheme {
+		NRF_CRC_ENC_1_BYTE = 0,
+		NRF_CRC_ENC_2_BYTES = 1
+	} CRCO : 1;
+	uint8_t EN_CRC : 1;  // reset value 1
+	uint8_t MASK_MAX_RT : 1;
+	uint8_t MASK_TX_DS : 1;
+	uint8_t MASK_RX_DR : 1;
+	uint8_t pad: 1; // 0
+	UNION_STRUCT_END;
 };
+CTASSERT_SIZE_BIT(struct nrf_reg_config_t, 8);
 
 struct nrf_status_t {
-	uint8_t pad : 1; // 0
-	uint8_t RX_DR : 1;
-	uint8_t TX_DS : 1;
-	uint8_t MAX_RT : 1;
-	uint8_t RX_P_NO : 3; // reset value 111
+	UNION_STRUCT_START(8);
 	uint8_t TX_FULL : 1;
+	uint8_t RX_P_NO : 3; // reset value 111
+	uint8_t MAX_RT : 1;
+	uint8_t TX_DS : 1;
+	uint8_t RX_DR : 1;
+	uint8_t pad : 1; // 0
+	UNION_STRUCT_END;
 };
+CTASSERT_SIZE_BIT(struct nrf_status_t, 8);
 
 struct nrf_rf_ch_t {
-	uint8_t pad : 1; // 0
+	UNION_STRUCT_START(8);
 	uint8_t RF_CH : 7; // reset value 0000010
+	uint8_t pad : 1; // 0
+	UNION_STRUCT_END;
 };
+CTASSERT_SIZE_BIT(struct nrf_rf_ch_t, 8);
 
 struct nrf_rf_setup_t {
-	uint8_t CONT_WAVE : 1;
-	uint8_t pad1 : 1; // 0
-	uint8_t RF_DR_LOW : 1; // force 250kbps
-	uint8_t PLL_LOCK : 1; // force PLL lock signal
-	enum nrf_data_rate_t {
-		NRF_DATA_RATE_1MBPS = 0x0,
-		NRF_DATA_RATE_2MBPS = 0x1,
-		NRF_DATA_RATE_250KBPS = 0x4
-	} RF_DR_HIGH : 3;
+	UNION_STRUCT_START(8);
+	uint8_t pad0 : 1; // 0
 	enum nrf_tx_output_power_t {
 		NRF_TX_POWER_18DBM = 0,
 		NRF_TX_POWER_12DBM = 1,
 		NRF_TX_POWER_6DBM = 2,
 		NRF_TX_POWER_0DBM = 3 // reset value
 	} RF_PWR : 2;
-	uint8_t pad2 : 1; // 0
+	enum nrf_data_rate_t {
+		NRF_DATA_RATE_1MBPS = 0x0,
+		NRF_DATA_RATE_2MBPS = 0x1,
+		NRF_DATA_RATE_250KBPS = 0x4
+	} RF_DR_HIGH : 3;
+	uint8_t PLL_LOCK : 1; // force PLL lock signal
+	uint8_t RF_DR_LOW : 1; // force 250kbps
+	uint8_t pad6 : 1; // 0
+	uint8_t CONT_WAVE : 1;
+	UNION_STRUCT_END;
 };
+CTASSERT_SIZE_BIT(struct nrf_rf_ch_t, 8);
 
 
 
@@ -142,8 +154,8 @@ struct nrf_transaction_t {
 	struct nrf_status_t status;
 	void *rx_data;
 };
-/*
 
+/*
 typedef void (nrf_data_callback)(struct nrf_addr_t *, void *, uint8_t);
 
 struct nrf_context_t {
@@ -163,11 +175,13 @@ struct nrf_addr_t {
 	uint8_t size;
 };
 */
+
 void nrf_init(void);
+void nrf_read_status(void);
 
 //void nrf_receive(struct nrf_addr_t *, void *, uint8_t, nrf_data_callback);
 //void nrf_send(struct nrf_addr_t *, void *, uint8_t, nrf_data_callback);
-void nrf_set_channel(uint8_t);
+//void nrf_set_channel(uint8_t);
 //void nrf_set_rate_and_power(enum nrf_data_rate_t, enum nrf_tx_output_power_t);
 
 

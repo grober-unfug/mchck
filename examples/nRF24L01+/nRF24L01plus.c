@@ -1,58 +1,45 @@
 #include <mchck.h>
 #include "nRF24L01plus.h"
 
-static struct nrf_rf_ch_t channel_status;
+static struct nrf_status_t nrf_status;
+//static struct timeout_ctx t;
 
 static void
-walk_state(void *cbdata)
+nrf_read_status_done(void *cbdata)
 {
-	struct nrf_rf_ch_t *status = cbdata;
+	struct nrf_status_t *status = cbdata;
 
-	channel_status = *status;
-	printf("status: %#.2x\r\n", channel_status.RF_CH);
+	nrf_status = *status;
+	printf("RX_DR: %x\r\n", nrf_status.RX_DR);
+	printf("TX_DS: %x\r\n", nrf_status.TX_DS);
+	printf("MAX_RT: %x\r\n", nrf_status.MAX_RT);
+	printf("RX_P_NO: %x\r\n", nrf_status.RX_P_NO);
+	printf("TX_FULL: %x\r\n", nrf_status.TX_FULL);
 }
 
-
-static void
-send_command(struct nrf_transaction_t *trans, spi_cb *cb)
+void
+nrf_read_status(void)
 {
-	printf("huhu\r\n");
-	static struct spi_ctx_bare sp_ctx;
-	static struct sg tx_sg[2];
-	static uint8_t header;
-	static struct nrf_rf_ch_t new_channel_status;
-	new_channel_status.pad = 0;
-	new_channel_status.RF_CH = 5;
-
-	header = NRF_CMD_W_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
-	sg_init(tx_sg,
-		(void *)&header, 1,
-		(void *)&new_channel_status, 1);
-
-//	gpio_write(NRF_CSN, GPIO_LOW);
-	spi_queue_xfer_sg(&sp_ctx, NRF_SPI_CS,
-			  tx_sg, NULL,
-			  NULL, NULL);
-//	gpio_write(NRF_CSN, GPIO_HIGH);
-
-
 	static struct spi_ctx rdsr_ctx;
-	static const enum NRF_CMD cmd = NRF_CMD_R_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
+	static const enum NRF_CMD cmd = NRF_CMD_R_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_STATUS);
 	static uint8_t rxbuf[2];
-//	gpio_write(NRF_CSN, GPIO_LOW);
+
 	spi_queue_xfer(&rdsr_ctx, NRF_SPI_CS,
 		       &cmd, 1, rxbuf, 2,
-		       walk_state, &rxbuf[1]);
-//	static struct tx_sg[2];
-
-//	spi_queue_xfer_sg(&trans->spi_ctx, NRF_SPI_CS,
-//			sg_init(trans->tx_sg, &trans->cmd, 1, trans->tx_data, trans->tx_len),
-//			sg_init(trans->rx_sg, &trans->status, 1, trans->rx_data, trans->rx_len),
-//			cb, trans);
-//	gpio_write(NRF_CSN, GPIO_HIGH);
+		       nrf_read_status_done, &rxbuf[1]);
 }
 
 /*
+static void
+send_command(struct nrf_transaction_t *trans, spi_cb *cb)
+{
+	spi_queue_xfer_sg(&trans->spi_ctx, NRF_SPI_CS,
+			sg_init(trans->tx_sg, &trans->cmd, 1, trans->tx_data, trans->tx_len),
+			sg_init(trans->rx_sg, &trans->status, 1, trans->rx_data, trans->rx_len),
+			cb, trans);
+}
+
+
 static void
 nrf_set_power_rxtx(uint8_t up, uint8_t rx)
 {
@@ -138,30 +125,7 @@ PORTC_Handler(void)
 	};
 	send_command(&trans, handle_status);
 }
-*/
 
-void
-nrf_init(void)
-{
-	spi_init();
-
-	pin_mode(NRF_CSN, PIN_MODE_MUX_ALT2);
-	pin_mode(NRF_SCK, PIN_MODE_MUX_ALT2);
-	pin_mode(NRF_MOSI, PIN_MODE_MUX_ALT2);
-	pin_mode(NRF_MISO, PIN_MODE_MUX_ALT2);
-
-	gpio_dir(NRF_CE, GPIO_OUTPUT);
-	gpio_write(NRF_CE, NRF_CE_TX);
-
-	gpio_dir(NRF_CSN, GPIO_OUTPUT);
-	gpio_write(NRF_CSN, GPIO_HIGH);
-
-//	pin_mode(NRF_IRQ, PIN_MODE_PULLDOWN);
-//	pin_physport_from_pin(NRF_IRQ)->pcr[pin_physpin_from_pin(NRF_IRQ)].irqc = PCR_IRQC_INT_RISING;
-//	int_enable(IRQ_PORTC);
-}
-
-/*
 void
 nrf_receive(struct nrf_addr_t *addr, void *data, uint8_t len, nrf_data_callback cb)
 {
@@ -181,28 +145,21 @@ void
 nrf_send(struct nrf_addr_t *addr, void *data, uint8_t len, nrf_data_callback cb)
 {
 }
-*/
+
 void
 nrf_set_channel(uint8_t channel)
 {
 	static struct nrf_rf_ch_t rf_ch = {
 		.pad = 0
 	};
+	nrf_ctx.trans.cmd = NRF_CMD_W_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
+	nrf_ctx.trans.tx_len = 1;
+	nrf_ctx.trans.tx_data = &rf_ch;
+	nrf_ctx.trans.rx_len = 0;
 	rf_ch.RF_CH = channel;
-//	nrf_ctx.trans.cmd = NRF_CMD_W_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
-//	nrf_ctx.trans.tx_len = 1;
-//	nrf_ctx.trans.tx_data = &rf_ch;
-//	nrf_ctx.trans.rx_len = 0;
-//	rf_ch.RF_CH = channel;
-//	send_command(&nrf_ctx.trans, NULL);
-	static struct nrf_transaction_t trans;
-	trans.cmd = NRF_CMD_W_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
-	trans.tx_len = 1;
-	trans.rx_len = 0;
-	trans.tx_data = &rf_ch;
-	send_command(&trans, NULL);
+	send_command(&nrf_ctx.trans, NULL);
 }
-/*
+
 void
 nrf_set_rate_and_power(enum nrf_data_rate_t data_rate, enum nrf_tx_output_power_t output_power)
 {
@@ -220,3 +177,23 @@ nrf_set_rate_and_power(enum nrf_data_rate_t data_rate, enum nrf_tx_output_power_
 	send_command(&nrf_ctx.trans, NULL);
 }
 */
+
+void
+nrf_init(void)
+{
+	spi_init();
+
+	pin_mode(NRF_CSN, PIN_MODE_MUX_ALT2);
+	pin_mode(NRF_SCK, PIN_MODE_MUX_ALT2);
+	pin_mode(NRF_MOSI, PIN_MODE_MUX_ALT2);
+	pin_mode(NRF_MISO, PIN_MODE_MUX_ALT2);
+
+	gpio_dir(NRF_CE, GPIO_OUTPUT);
+	gpio_write(NRF_CE, NRF_CE_TX);
+
+
+//	pin_mode(NRF_IRQ, PIN_MODE_PULLDOWN);
+//	pin_physport_from_pin(NRF_IRQ)->pcr[pin_physpin_from_pin(NRF_IRQ)].irqc = PCR_IRQC_INT_RISING;
+//	int_enable(IRQ_PORTC);
+}
+
