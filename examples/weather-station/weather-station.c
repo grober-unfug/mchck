@@ -158,8 +158,9 @@ humitemp_startreading(void)
 	systick_restart();
 
 	/* set digital debounce/filter */
-	pin_physport_from_pin(GPIO_PTD0)->dfcr.cs = PORT_CS_LPO;
+	pin_physport_from_pin(GPIO_PTD0)->dfcr.cs = PORT_CS_BUS;
 	pin_physport_from_pin(GPIO_PTD0)->dfwr.filt = 31;
+        pin_physport_from_pin(GPIO_PTD0)->dfer |= 1 << pin_physpin_from_pin(GPIO_PTD0);
 
 	/* falling flank interrupt */
 	pin_physport_from_pin(GPIO_PTD0)->pcr[pin_physpin_from_pin(GPIO_PTD0)].irqc = PCR_IRQC_INT_FALLING;
