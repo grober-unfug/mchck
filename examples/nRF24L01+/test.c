@@ -53,28 +53,28 @@ new_data(uint8_t *data, size_t len)
 {
 	switch (data[0]) {
 	case '0':
-		nrf_read_buffer(NRF_REG_ADDR_CONFIG);
+		nrf_read_register(NRF_REG_ADDR_CONFIG);
 		break;
 	case '1':
-		nrf_read_buffer(NRF_REG_ADDR_EN_AA);
+		nrf_read_register(NRF_REG_ADDR_EN_AA);
 		break;
 	case '2':
-		nrf_read_buffer(NRF_REG_ADDR_EN_RXADDR);
+		nrf_read_register(NRF_REG_ADDR_EN_RXADDR);
 		break;
 	case '3':
-		nrf_read_buffer(NRF_REG_ADDR_SETUP_AW);
+		nrf_read_register(NRF_REG_ADDR_SETUP_AW);
 		break;
 	case '4':
-		nrf_read_buffer(NRF_REG_ADDR_SETUP_RETR);
+		nrf_read_register(NRF_REG_ADDR_SETUP_RETR);
 		break;
 	case '5':
-		nrf_read_buffer(NRF_REG_ADDR_RF_CH);
+		nrf_read_register(NRF_REG_ADDR_RF_CH);
 		break;
 	case '6':
-		nrf_read_buffer(NRF_REG_ADDR_RF_SETUP);
+		nrf_read_register(NRF_REG_ADDR_RF_SETUP);
 		break;
 	case '7':
-		nrf_read_buffer(NRF_REG_ADDR_STATUS);
+		nrf_read_register(NRF_REG_ADDR_STATUS);
 		break;
 	}
 

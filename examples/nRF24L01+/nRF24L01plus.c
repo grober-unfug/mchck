@@ -14,7 +14,7 @@ send_command(struct nrf_transaction_t *trans, spi_cb *cb)
 
 	spi_queue_xfer_sg(&trans->sp_ctx, NRF_SPI_CS,
 			trans->tx_sg, trans->rx_sg,
-			&nrf_read_buffer_done, trans);
+			cb, trans);
 }
 
 static void
@@ -62,7 +62,7 @@ nrf_read_register(enum NRF_REG_ADDR reg_addr)
 	trans.rx_len = 1;
 	trans.rx_data = (void *) &rx_data;
 
-	send_command(&trans, &nrf_read_buffer_done);
+	send_command(&trans, &nrf_read_register_done);
 }
 
 /*
