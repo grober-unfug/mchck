@@ -77,7 +77,7 @@ struct nrf_datapipe_payload_size_t {
 /* Mnemonic Register Description */
 
 struct nrf_reg_generic {
-//	enum NRF_REG_ADDR addr;
+	enum NRF_REG_ADDR addr;
 	uint8_t raw;
 };
 

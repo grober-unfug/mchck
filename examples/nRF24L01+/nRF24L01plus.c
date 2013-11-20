@@ -2,7 +2,6 @@
 #include "nRF24L01plus.h"
 
 static struct nrf_status_t nrf_status;
-static struct nrf_reg_generic nrf_reg;
 static struct timeout_ctx t;
 
 static void
@@ -34,9 +33,7 @@ static void
 nrf_read_buffer_done(void *cbdata)
 {
 	struct nrf_reg_generic *reg = cbdata;
-
-	nrf_reg = *reg;
-	printf("reg: %x\r\n", nrf_reg.raw);
+	printf("reg %x: %x\r\n", reg->addr, reg->raw);
 }
 
 void
@@ -45,13 +42,13 @@ nrf_read_buffer(enum NRF_REG_ADDR reg_addr)
 	static struct spi_ctx rdbf_ctx;
 	static enum NRF_CMD cmd = NRF_CMD_R_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
 	static uint8_t rxbuf[2];
-//	static struct nrf_reg_gerneric nrf_reg;
-//	nrf_reg.addr = reg_addr;
-//	nrf.reg.raw = rxbuf[1];
+	static struct nrf_reg_generic reg;
+	reg.addr = reg_addr;
+	reg.raw = rxbuf[1];
 
 	spi_queue_xfer(&rdbf_ctx, NRF_SPI_CS,
 		       &cmd, 1, rxbuf, 2,
-		       nrf_read_buffer_done, &rxbuf[1]);
+		       nrf_read_buffer_done, &reg);
 }
 
 /*
