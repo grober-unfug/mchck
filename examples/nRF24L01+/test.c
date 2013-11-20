@@ -4,10 +4,11 @@
 #include "nRF24L01plus.h"
 
 #define RX_SIZE 32
-#define CHANNEL 3
+#define CHANNEL 1
 
 static struct cdc_ctx cdc;
 static struct nrf_ctx nrf;
+
 //static struct timeout_ctx t;
 
 /*

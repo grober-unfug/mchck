@@ -10,7 +10,7 @@ send_command(struct nrf_transaction_t *trans, spi_cb *cb)
 	sg_init(trans->tx_sg,
 		(void *)&trans->cmd, 1, trans->tx_data, trans->tx_len);
 	sg_init(trans->rx_sg,
-		(void *)&trans->status, 1, (void *)trans->rx_data, trans->rx_len);
+		(void *)&trans->status, 1, trans->rx_data, trans->rx_len);
 
 	spi_queue_xfer_sg(&trans->sp_ctx, NRF_SPI_CS,
 			trans->tx_sg, trans->rx_sg,
@@ -177,20 +177,22 @@ nrf_send(struct nrf_addr_t *addr, void *data, uint8_t len, nrf_data_callback cb)
 void
 nrf_set_channel(void *cbdata)
 {
-//	struct nrf_ctx *nrf = cbdata;
+	static struct nrf_ctx *nrf;
+	static struct nrf_transaction_t trans;
+	static uint8_t rx_data;
+	static struct nrf_rf_ch_t rf_ch = {
+		.pad = 0
+	};
+	nrf = cbdata;
+	rf_ch.RF_CH = nrf->channel;
 
-	static struct spi_ctx wrcr_ctx;
-	static uint8_t txbuf[2];
-//	static struct nrf_rf_ch_t rf_ch = {
-//		.pad = 0
-//	};
-//	rf_ch.RF_CH = channel;
-	txbuf[0] = NRF_CMD_W_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
-	txbuf[1] = 3;
+	trans.cmd = NRF_CMD_W_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
+	trans.tx_data = (void *) &rf_ch;
+	trans.tx_len = 1;
+	trans.rx_len = 0;
+	trans.rx_data = (void *) &rx_data; // why do i need this???
 
-	spi_queue_xfer(&wrcr_ctx, NRF_SPI_CS,
-		       txbuf, 2, NULL, 0,
-		       NULL, NULL);
+	send_command(&trans, NULL);
 }
 
 /*
@@ -230,6 +232,6 @@ nrf_init(struct nrf_ctx *nrf)
 //	pin_physport_from_pin(NRF_IRQ)->pcr[pin_physpin_from_pin(NRF_IRQ)].irqc = PCR_IRQC_INT_RISING;
 //	int_enable(IRQ_PORTC);
 
-	timeout_add(&t, 100, nrf_set_channel, &nrf);
+	timeout_add(&t, 200, nrf_set_channel, nrf);
 }
 
