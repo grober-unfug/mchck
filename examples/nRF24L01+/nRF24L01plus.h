@@ -76,12 +76,7 @@ struct nrf_datapipe_payload_size_t {
 
 /* Mnemonic Register Description */
 
-struct nrf_reg_generic {
-	enum NRF_REG_ADDR addr;
-	uint8_t *raw;
-};
-
-struct nrf_reg_config_t {
+struct nrf_config_t {
 	UNION_STRUCT_START(8);
 	enum nrf_rxtx_control {
 		NRF_RX_MODE = 0, // reset value
@@ -99,7 +94,7 @@ struct nrf_reg_config_t {
 	uint8_t pad: 1; // 0
 	UNION_STRUCT_END;
 };
-CTASSERT_SIZE_BIT(struct nrf_reg_config_t, 8);
+CTASSERT_SIZE_BIT(struct nrf_config_t, 8);
 
 struct nrf_status_t {
 	UNION_STRUCT_START(8);
@@ -113,6 +108,14 @@ struct nrf_status_t {
 };
 CTASSERT_SIZE_BIT(struct nrf_status_t, 8);
 
+struct nrf_setup_retr_t {
+	UNION_STRUCT_START(8);
+	uint8_t ARC : 4; // reset value 0011
+	uint8_t ARD : 4; // in 250us steps
+	UNION_STRUCT_END;
+};
+CTASSERT_SIZE_BIT(struct nrf_setup_retr_t, 8);
+
 struct nrf_rf_ch_t {
 	UNION_STRUCT_START(8);
 	uint8_t RF_CH : 7; // reset value 0000010
@@ -125,15 +128,15 @@ struct nrf_rf_setup_t {
 	UNION_STRUCT_START(8);
 	uint8_t pad0 : 1; // 0
 	enum nrf_tx_output_power_t {
-		NRF_TX_POWER_18DBM = 0,
-		NRF_TX_POWER_12DBM = 1,
-		NRF_TX_POWER_6DBM = 2,
-		NRF_TX_POWER_0DBM = 3 // reset value
+		NRF_TX_POWER_18DBM = 0x0,
+		NRF_TX_POWER_12DBM = 0x1,
+		NRF_TX_POWER_6DBM = 0x2,
+		NRF_TX_POWER_0DBM = 0x3 // reset value
 	} RF_PWR : 2;
 	enum nrf_data_rate_t {
 		NRF_DATA_RATE_1MBPS = 0x0,
 		NRF_DATA_RATE_2MBPS = 0x1,
-		NRF_DATA_RATE_250KBPS = 0x4
+		NRF_DATA_RATE_250KBPS = 0x2
 	} RF_DR_HIGH : 3;
 	uint8_t PLL_LOCK : 1; // force PLL lock signal
 	uint8_t RF_DR_LOW : 1; // force 250kbps
@@ -146,7 +149,11 @@ CTASSERT_SIZE_BIT(struct nrf_rf_ch_t, 8);
 
 
 struct nrf_ctx {
+	uint8_t ard;
+	uint8_t arc;
 	uint8_t channel;
+	enum nrf_tx_output_power_t power;
+	enum nrf_data_rate_t rate;
 };
 
 
@@ -184,13 +191,15 @@ struct nrf_addr_t {
 */
 
 void nrf_init(struct nrf_ctx *);
+void nrf_setup(void *cbdata);
 void nrf_read_status(void);
 void nrf_read_register(enum NRF_REG_ADDR);
 
 //void nrf_receive(struct nrf_addr_t *, void *, uint8_t, nrf_data_callback);
 //void nrf_send(struct nrf_addr_t *, void *, uint8_t, nrf_data_callback);
-void nrf_set_channel(void *cbdata);
-//void nrf_set_rate_and_power(enum nrf_data_rate_t, enum nrf_tx_output_power_t);
+void nrf_set_retry(uint8_t, uint8_t);
+void nrf_set_channel(uint8_t);
+void nrf_set_rate_and_power(enum nrf_data_rate_t, enum nrf_tx_output_power_t);
 
 
 /*

@@ -9,8 +9,12 @@ send_command(struct nrf_transaction_t *trans, spi_cb *cb)
 {
 	sg_init(trans->tx_sg,
 		(void *)&trans->cmd, 1, trans->tx_data, trans->tx_len);
-	sg_init(trans->rx_sg,
-		(void *)&trans->status, 1, trans->rx_data, trans->rx_len);
+	if (trans->rx_data)
+		sg_init(trans->rx_sg,
+			(void *)&trans->status, 1, trans->rx_data, trans->rx_len);
+	else
+		sg_init(trans->rx_sg,
+			(void *)&trans->status, 1);
 
 	spi_queue_xfer_sg(&trans->sp_ctx, NRF_SPI_CS,
 			trans->tx_sg, trans->rx_sg,
@@ -70,7 +74,7 @@ nrf_read_register(enum NRF_REG_ADDR reg_addr)
 static void
 nrf_set_power_rxtx(uint8_t up, uint8_t rx)
 {
-	static struct nrf_reg_config_t config = {
+	static struct nrf_config_t config = {
 		.pad = 0
 	};
 	config.PRIM_RX = rx;
@@ -175,44 +179,68 @@ nrf_send(struct nrf_addr_t *addr, void *data, uint8_t len, nrf_data_callback cb)
 */
 
 void
-nrf_set_channel(void *cbdata)
+nrf_set_retry(uint8_t ard, uint8_t arc)
 {
-	static struct nrf_ctx *nrf;
 	static struct nrf_transaction_t trans;
-	static uint8_t rx_data;
-	static struct nrf_rf_ch_t rf_ch = {
-		.pad = 0
-	};
-	nrf = cbdata;
-	rf_ch.RF_CH = nrf->channel;
+	static struct nrf_setup_retr_t setup_retr;
 
-	trans.cmd = NRF_CMD_W_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
-	trans.tx_data = (void *) &rf_ch;
+	trans.cmd = NRF_CMD_W_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_SETUP_RETR);
+	trans.tx_data = (void *) &setup_retr;
 	trans.tx_len = 1;
-	trans.rx_len = 0;
-	trans.rx_data = (void *) &rx_data; // why do i need this???
+
+	setup_retr.ARD = ard;
+	setup_retr.ARC = arc;
 
 	send_command(&trans, NULL);
 }
 
-/*
+void
+nrf_set_channel(uint8_t channel)
+{
+	static struct nrf_transaction_t trans;
+	static struct nrf_rf_ch_t rf_ch = {
+		.pad = 0
+	};
+
+	trans.cmd = NRF_CMD_W_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_CH);
+	trans.tx_data = (void *) &rf_ch;
+	trans.tx_len = 1;
+
+	rf_ch.RF_CH = channel;
+
+	send_command(&trans, NULL);
+}
+
 void
 nrf_set_rate_and_power(enum nrf_data_rate_t data_rate, enum nrf_tx_output_power_t output_power)
 {
+	static struct nrf_transaction_t trans;
 	static struct nrf_rf_setup_t rf_setup = {
 		.CONT_WAVE = 0,
-		.pad1 = 0,
-		.pad2 = 0
+		.pad0 = 0,
+		.pad6 = 0,
+		.PLL_LOCK = 0
 	};
-	nrf_ctx.trans.cmd = NRF_CMD_W_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_SETUP)
-	nrf_ctx.trans.tx_len = 1;
-	nrf_ctx.trans.tx_data = &rf_setup;
-	nrf_ctx.trans.rx_len = 0;
+
+	trans.cmd = NRF_CMD_W_REGISTER | (NRF_REG_MASK & NRF_REG_ADDR_RF_SETUP);
+	trans.tx_data = (void *) &rf_setup;
+	trans.tx_len = 0;
+
 	rf_setup.RF_PWR = output_power;
-	rf_setup.rate = data_rate;
-	send_command(&nrf_ctx.trans, NULL);
+	rf_setup.RF_DR_HIGH = data_rate;
+
+	send_command(&trans, NULL);
 }
-*/
+
+void
+nrf_setup(void *cbdata)
+{
+	static struct nrf_ctx *nrf;
+	nrf = cbdata;
+	nrf_set_retry(nrf->ard, nrf->arc);
+	nrf_set_channel(nrf->channel);
+	nrf_set_rate_and_power(nrf->rate, nrf->power);
+}
 
 void
 nrf_init(struct nrf_ctx *nrf)
@@ -232,6 +260,6 @@ nrf_init(struct nrf_ctx *nrf)
 //	pin_physport_from_pin(NRF_IRQ)->pcr[pin_physpin_from_pin(NRF_IRQ)].irqc = PCR_IRQC_INT_RISING;
 //	int_enable(IRQ_PORTC);
 
-	timeout_add(&t, 200, nrf_set_channel, nrf);
+	timeout_add(&t, 200, nrf_setup, nrf);
 }
 

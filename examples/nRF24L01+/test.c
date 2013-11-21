@@ -4,7 +4,9 @@
 #include "nRF24L01plus.h"
 
 #define RX_SIZE 32
-#define CHANNEL 1
+#define CHANNEL 4
+#define POWER NRF_TX_POWER_6DBM
+#define RATE NRF_DATA_RATE_1MBPS
 
 static struct cdc_ctx cdc;
 static struct nrf_ctx nrf;
@@ -103,7 +105,11 @@ static const struct usbd_device cdc_device =
 int
 main(void)
 {
+	nrf.ard = 0x4; // auto retransmit delay 1.25ms
+	nrf.arc = 0xf; // up to 15 retransmissions
 	nrf.channel = CHANNEL;
+	nrf.rate = RATE;
+	nrf.power = POWER;
 	timeout_init();
 	usb_init(&cdc_device);
 	nrf_init(&nrf);
